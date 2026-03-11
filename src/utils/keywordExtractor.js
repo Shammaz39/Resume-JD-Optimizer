@@ -1,12 +1,53 @@
 const CATEGORIES = {
-    languages: ['java', 'python', 'go', 'golang', 'ruby', 'javascript', 'typescript'],
-    frameworks: ['spring', 'spring boot', 'django', 'flask', 'rails', 'express'],
-    architecture: ['microservices', 'monolith', 'domain driven design', 'ddd', 'rest api', 'graphql', 'rest', 'restful api'],
-    databases: ['mysql', 'postgres', 'postgresql', 'mongodb', 'redis'],
-    devops: ['docker', 'kubernetes', 'ci/cd', 'jenkins', 'gitlab', 'github actions', 'git'],
-    messaging: ['kafka', 'rabbitmq'],
-    cloud: ['aws', 'gcp', 'azure'],
-    testing: ['unit testing', 'integration testing', 'junit', 'pytest']
+  languages: [
+    "java","python","go","golang","ruby","javascript","typescript",
+    "kotlin","scala","rust","php","swift","dart"
+  ],
+
+  frameworks: [
+    "spring","spring boot","spring mvc","spring security",
+    "django","flask","rails","ruby on rails",
+    "express","nodejs","nestjs","nextjs","react","angular","vue",
+    "hibernate","struts","quarkus","micronaut"
+  ],
+
+  architecture: [
+    "microservices","microservice","monolith","monolithic",
+    "distributed systems","event driven architecture",
+    "domain driven design","ddd","clean architecture",
+    "hexagonal architecture","layered architecture",
+    "rest","rest api","restful api","graphql","grpc",
+    "api gateway","service mesh"
+  ],
+
+  databases: [
+    "mysql","postgres","postgresql","mongodb","redis","cassandra",
+    "dynamodb","oracle","sql server","sqlite","mariadb",
+    "elasticsearch","opensearch"
+  ],
+
+  devops: [
+    "docker","kubernetes","helm","terraform","ansible",
+    "ci/cd","jenkins","gitlab","github actions","circleci",
+    "travis","bamboo","git","bitbucket"
+  ],
+
+  messaging: [
+    "kafka","rabbitmq","activemq","sqs","pubsub",
+    "google pubsub","event streaming","message queue"
+  ],
+
+  cloud: [
+    "aws","amazon web services","gcp","google cloud",
+    "azure","ec2","s3","lambda","cloud run",
+    "cloud functions","rds","cloudformation"
+  ],
+
+  testing: [
+    "unit testing","integration testing","test automation",
+    "junit","mockito","pytest","selenium","cypress",
+    "jest","testng","bdd","tdd"
+  ]
 };
 
 const STOPWORDS = [
@@ -16,17 +57,30 @@ const STOPWORDS = [
 ];
 
 const NORMALIZATION_MAP = {
-    'rest': 'REST API',
-    'rest api': 'REST API',
-    'restful api': 'REST API',
-    'microservice': 'Microservices',
-    'microservices': 'Microservices',
-    'domain driven design': 'DDD',
-    'ddd': 'DDD',
-    'golang': 'Go',
-    'go': 'Go',
-    'postgres': 'PostgreSQL',
-    'postgresql': 'PostgreSQL'
+  "rest": "REST API",
+  "rest api": "REST API",
+  "restful api": "REST API",
+
+  "microservice": "Microservices",
+  "microservices": "Microservices",
+
+  "domain driven design": "DDD",
+  "ddd": "DDD",
+
+  "golang": "Go",
+  "go": "Go",
+
+  "postgres": "PostgreSQL",
+  "postgresql": "PostgreSQL",
+
+  "node": "Node.js",
+  "nodejs": "Node.js",
+
+  "ci/cd pipeline": "CI/CD",
+  "ci cd": "CI/CD",
+
+  "aws cloud": "AWS",
+  "amazon web services": "AWS"
 };
 
 export const normalize = (word) => {
