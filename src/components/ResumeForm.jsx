@@ -1,6 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useResume } from '../context/ResumeContext';
-import { Plus, Trash2, Save, User, Settings as SettingsIcon, Eye, EyeOff, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Save, User, Settings as SettingsIcon, Eye, EyeOff, Check, ChevronDown, ChevronRight, Bold, Italic, Underline } from 'lucide-react';
+
+const RichTextArea = ({ value, onChange, placeholder }) => {
+    const textareaRef = useRef(null);
+
+    const applyFormat = (prefix, suffix) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start === end) return;
+
+        const selectedText = value.substring(start, end);
+        const newText = value.substring(0, start) + prefix + selectedText + suffix + value.substring(end);
+
+        onChange({ target: { value: newText } });
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+        }, 0);
+    };
+
+    return (
+        <div className="w-full bg-white/5 border border-white/10 rounded-lg overflow-hidden focus-within:border-indigo-500 transition-colors flex flex-col">
+            <div className="flex bg-white/10 px-2 py-1 border-b border-white/10 gap-1">
+                <button type="button" onClick={() => applyFormat('**', '**')} className="p-1 text-gray-400 hover:text-white hover:bg-white/20 rounded transition-colors" title="Bold"><Bold size={12} /></button>
+                <button type="button" onClick={() => applyFormat('*', '*')} className="p-1 text-gray-400 hover:text-white hover:bg-white/20 rounded transition-colors" title="Italic"><Italic size={12} /></button>
+                <button type="button" onClick={() => applyFormat('_', '_')} className="p-1 text-gray-400 hover:text-white hover:bg-white/20 rounded transition-colors" title="Underline"><Underline size={12} /></button>
+            </div>
+            <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                className="w-full bg-transparent p-2.5 text-white text-[11px] h-24 resize-none outline-none scrollbar-hide"
+            />
+        </div>
+    );
+};
 
 const ResumeForm = () => {
     const { resume, updateResume, saveBaseSnapshot, updateSettings, isBaseSet } = useResume();
@@ -242,11 +282,10 @@ const ResumeForm = () => {
                             </div>
                             <input value={exp.location} onChange={(e) => updateArrayItem('experience', exp.id, { location: e.target.value })} placeholder="Location" className="w-full bg-transparent border-none text-[10px] text-gray-500 focus:outline-none mb-1" />
 
-                            <textarea
+                            <RichTextArea
                                 value={exp.description || ''}
                                 onChange={(e) => updateArrayItem('experience', exp.id, { description: e.target.value })}
                                 placeholder="Job Description (One bullet per line)"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-[11px] focus:border-indigo-500 h-24 resize-none scrollbar-hide"
                             />
                         </div>
                     ))}
@@ -270,11 +309,10 @@ const ResumeForm = () => {
                                 <input value={proj.backend} onChange={(e) => updateArrayItem('projects', proj.id, { backend: e.target.value })} placeholder="Live Backend URL" className="bg-transparent border-none text-indigo-400 focus:outline-none w-full" />
                             </div>
 
-                            <textarea
+                            <RichTextArea
                                 value={proj.description || ''}
                                 onChange={(e) => updateArrayItem('projects', proj.id, { description: e.target.value })}
                                 placeholder="Project Description (One bullet per line)"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white text-[11px] focus:border-indigo-500 h-24 resize-none scrollbar-hide"
                             />
                         </div>
                     ))}

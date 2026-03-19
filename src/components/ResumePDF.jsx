@@ -286,6 +286,23 @@ const ResumePDF = ({ resume }) => {
         </View>
     );
 
+    const parseRichText = (text) => {
+        if (!text) return null;
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <Text key={index} style={{ fontWeight: 'bold' }}>{part.slice(2, -2)}</Text>;
+            }
+            if (part.startsWith('*') && part.endsWith('*')) {
+                return <Text key={index} style={{ fontStyle: 'italic' }}>{part.slice(1, -1)}</Text>;
+            }
+            if (part.startsWith('_') && part.endsWith('_')) {
+                return <Text key={index} style={{ textDecoration: 'underline' }}>{part.slice(1, -1)}</Text>;
+            }
+            return part;
+        });
+    };
+
     const renderDescription = (text) => {
         if (!text) return null;
         const lines = text.split('\n').filter(line => line.trim() !== '');
@@ -296,14 +313,14 @@ const ResumePDF = ({ resume }) => {
                     {lines.map((line, idx) => (
                         <View key={idx} style={styles.bulletItem}>
                             <Text style={styles.bulletPoint}>{settings.listStyle === 'bullet' ? '•' : '–'}</Text>
-                            <Text style={styles.bulletText}>{line.replace(/\*\*(.*?)\*\*/g, '$1')}</Text>
+                            <Text style={styles.bulletText}>{parseRichText(line)}</Text>
                         </View>
                     ))}
                 </View>
             );
         }
 
-        return <Text style={[styles.summary, { marginTop: 2 }]}>{text.replace(/\*\*(.*?)\*\*/g, '$1')}</Text>;
+        return <Text style={[styles.summary, { marginTop: 2 }]}>{parseRichText(text)}</Text>;
     };
 
     const renderHeader = () => (
@@ -503,7 +520,7 @@ const ResumePDF = ({ resume }) => {
     const fixedSectionOrder = ['summary', 'skills', 'experience', 'projects', 'education', 'certifications'];
 
     return (
-        <Document title={`${resume.personalInfo.name || 'Resume'}_Optimized`}>
+        <Document title={`${resume.personalInfo.name || 'Resume'}`}>
             <Page size="A4" style={[styles.page, { fontFamily: fontToUse }]}>
                 {renderHeader()}
                 {fixedSectionOrder.map(section => (

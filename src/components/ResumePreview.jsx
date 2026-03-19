@@ -5,7 +5,7 @@ import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import ResumePDF from './ResumePDF';
 
 const ResumePreview = () => {
-    const { resume, baseResumeSnapshot, resetToSnapshot } = useResume();
+    const { resume, baseResumeSnapshot, resetToSnapshot, updateSettings } = useResume();
 
     // Memoize the document to prevent unnecessary re-renders of the heavy PDF engine
     const pdfDocument = useMemo(() => <ResumePDF resume={resume} />, [resume]);
@@ -24,9 +24,19 @@ const ResumePreview = () => {
                     {baseResumeSnapshot && (
                         <button onClick={resetToSnapshot} className="px-3 py-1.5 bg-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/20 border border-white/10 transition-all">Reset Base</button>
                     )}
+                    <div className="flex items-center space-x-2 mr-2">
+                        <FileText size={14} className="text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Custom File Name..."
+                            value={resume.settings?.pdfFileName || ''}
+                            onChange={(e) => updateSettings({ pdfFileName: e.target.value })}
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-indigo-500 w-32"
+                        />
+                    </div>
                     <PDFDownloadLink
                         document={pdfDocument}
-                        fileName={`${resume.personalInfo.name || 'Resume'}_Optimized.pdf`}
+                        fileName={`${resume.settings?.pdfFileName || resume.personalInfo?.name || 'Resume'}.pdf`}
                         className="flex items-center space-x-2 px-4 py-1.5 bg-indigo-600 rounded-lg text-white hover:bg-indigo-500 transition-all text-xs font-bold shadow-lg min-w-[140px] justify-center"
                     >
                         {({ loading }) => loading ? 'Building PDF...' : 'Download PDF'}

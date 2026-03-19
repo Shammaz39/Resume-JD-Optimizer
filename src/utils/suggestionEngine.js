@@ -1,4 +1,4 @@
-import { normalize } from './keywordExtractor';
+import { normalize, getSynonyms } from './keywordExtractor';
 
 const safeInsertTech = (line, keyword) => {
     let result = line;
@@ -53,6 +53,26 @@ const upgradeWeakVerbs = (line) => {
 export const suggestImprovements = (line, resumeSkills, analysis) => {
     if (!line || !resumeSkills.length || !analysis) return line;
 
+    let improved = line;
+
+    // Apply synonym alignment: Replace synonyms in the resume with JD exact terminology
+    if (analysis.matches) {
+        analysis.matches.forEach(matchNorm => {
+            const jdRaw = analysis.jdRawMapping[matchNorm];
+            if (!jdRaw) return;
+            
+            // Replaces instances of synonyms (e.g. "NodeJS") with JD terminology (e.g. "Node.js")
+            const synonyms = getSynonyms(matchNorm).filter(s => s.toLowerCase() !== jdRaw.toLowerCase());
+            synonyms.forEach(syn => {
+                if (syn.length < 2) return; // Ignore very short mappings
+                const regex = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+                if (regex.test(improved)) {
+                    improved = improved.replace(regex, jdRaw);
+                }
+            });
+        });
+    }
+
     // Rule 1 & 2: We ONLY suggest using MISSING JD keywords.
     // However, we MUST NOT fabricate specific tools.
     // We categorize missing keywords into "Safe Concepts" (e.g., microservices, REST API, CI/CD, Agile)
@@ -89,16 +109,15 @@ export const suggestImprovements = (line, resumeSkills, analysis) => {
     });
 
     // Rule 7 & 9: If bullet already contains 2 or more technical keywords, DO NOT modify it further
-    if (existingTechCount >= 2) return line;
+    if (existingTechCount >= 2) return improved;
 
-    let improved = line;
     let keywordInserted = false;
 
     // Try to insert exactly ONE missing "Safe Concept" keyword
     for (const keyword of candidateKeywords) {
         // Rule 8: If bullet already contains the keyword (edge case), skip it
         const existsRegex = new RegExp(`\\b${keyword.toLowerCase()}\\b`, 'i');
-        if (existsRegex.test(lowerLine)) continue;
+        if (existsRegex.test(improved.toLowerCase())) continue;
 
         // Ensure we only insert if there is contextual relevance. 
         // e.g., only add "microservices" if the bullet mentions "backend" or "services" or "api".
@@ -113,7 +132,10 @@ export const suggestImprovements = (line, resumeSkills, analysis) => {
 
     // If no keyword was inserted safely, try weak verb improvement
     if (!keywordInserted) {
-        improved = upgradeWeakVerbs(improved);
+        const verbUpgraded = upgradeWeakVerbs(improved);
+        if (verbUpgraded !== improved) {
+            improved = verbUpgraded;
+        }
     }
 
     return improved;

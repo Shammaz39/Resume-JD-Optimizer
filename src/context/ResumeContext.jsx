@@ -39,6 +39,10 @@ const INITIAL_RESUME = {
     certifications: [],
     settings: {
         // Existing / migrated
+        // Document settings
+        pdfFileName: '',
+
+        // Typography
         fontFamily: 'Serif Pro',
         fontSize: 10,
         photoSize: 80,

@@ -1,14 +1,14 @@
 const CATEGORIES = {
   languages: [
     "java","python","go","golang","ruby","javascript","typescript",
-    "kotlin","scala","rust","php","swift","dart"
+    "kotlin","scala","rust","php","swift","dart","c++","c#", "bash", "shell", "powershell"
   ],
 
   frameworks: [
     "spring","spring boot","spring mvc","spring security",
     "django","flask","rails","ruby on rails",
-    "express","nodejs","nestjs","nextjs","react","angular","vue",
-    "hibernate","struts","quarkus","micronaut"
+    "express","nodejs","node.js","nestjs","nextjs","react","react.js","reactjs","angular","vue","vue.js","svelte",
+    "hibernate","struts","quarkus","micronaut","fastapi","laravel"
   ],
 
   architecture: [
@@ -17,36 +17,50 @@ const CATEGORIES = {
     "domain driven design","ddd","clean architecture",
     "hexagonal architecture","layered architecture",
     "rest","rest api","restful api","graphql","grpc",
-    "api gateway","service mesh"
+    "api gateway","service mesh","serverless","mvc", "service oriented architecture", "soa"
   ],
 
   databases: [
     "mysql","postgres","postgresql","mongodb","redis","cassandra",
     "dynamodb","oracle","sql server","sqlite","mariadb",
-    "elasticsearch","opensearch"
+    "elasticsearch","opensearch", "neo4j", "couchdb"
   ],
 
   devops: [
-    "docker","kubernetes","helm","terraform","ansible",
-    "ci/cd","jenkins","gitlab","github actions","circleci",
-    "travis","bamboo","git","bitbucket"
+    "docker","kubernetes","k8s","helm","terraform","ansible",
+    "ci/cd","ci cd","cicd","jenkins","gitlab","gitlab ci", "github actions","circleci",
+    "travis","bamboo","git","bitbucket", "argocd", "puppet", "chef", "prometheus", "grafana"
   ],
 
   messaging: [
     "kafka","rabbitmq","activemq","sqs","pubsub",
-    "google pubsub","event streaming","message queue"
+    "google pubsub","event streaming","message queue", "celery", "sns", "kinesis"
   ],
 
   cloud: [
-    "aws","amazon web services","gcp","google cloud",
-    "azure","ec2","s3","lambda","cloud run",
-    "cloud functions","rds","cloudformation"
+    "aws","amazon web services","gcp","google cloud","google cloud platform",
+    "azure","microsoft azure", "ec2","s3","lambda","cloud run",
+    "cloud functions","rds","cloudformation", "eks", "gke", "aks", "ecs", "fargate"
   ],
 
   testing: [
     "unit testing","integration testing","test automation",
     "junit","mockito","pytest","selenium","cypress",
-    "jest","testng","bdd","tdd"
+    "jest","testng","bdd","tdd", "playwright", "puppeteer", "mocha", "chai"
+  ],
+
+  frontend: [
+    "html", "html5", "css", "css3", "sass", "scss", "less", "tailwind", "tailwindcss",
+    "bootstrap", "material ui", "mui", "webpack", "vite", "babel", "redux", "mobx", "zustand"
+  ],
+
+  mobile: [
+    "react native", "flutter", "ios", "android", "swiftui", "jetpack compose"
+  ],
+
+  data: [
+    "pandas", "numpy", "scikit-learn", "tensorflow", "keras", "pytorch",
+    "hadoop", "spark", "apache spark", "airflow", "dbt", "snowflake", "bigquery", "redshift"
   ]
 };
 
@@ -75,17 +89,64 @@ const NORMALIZATION_MAP = {
 
   "node": "Node.js",
   "nodejs": "Node.js",
+  "node.js": "Node.js",
 
   "ci/cd pipeline": "CI/CD",
   "ci cd": "CI/CD",
+  "cicd": "CI/CD",
 
   "aws cloud": "AWS",
-  "amazon web services": "AWS"
+  "amazon web services": "AWS",
+
+  "gcp": "Google Cloud",
+  "google cloud": "Google Cloud",
+  "google cloud platform": "Google Cloud",
+
+  "azure": "Azure",
+  "microsoft azure": "Azure",
+
+  "reactjs": "React",
+  "react.js": "React",
+  "react": "React",
+
+  "vuejs": "Vue",
+  "vue.js": "Vue",
+  "vue": "Vue",
+
+  "k8s": "Kubernetes",
+  "kubernetes": "Kubernetes",
+
+  "js": "JavaScript",
+  "javascript": "JavaScript",
+
+  "ts": "TypeScript",
+  "typescript": "TypeScript"
 };
 
 export const normalize = (word) => {
     const lower = word.toLowerCase().trim();
     return NORMALIZATION_MAP[lower] || word;
+};
+
+export const getSynonyms = (normalizedKeyword) => {
+    if (!normalizedKeyword) return [];
+    const synonyms = new Set();
+    const lowerNorm = normalizedKeyword.toLowerCase();
+
+    Object.keys(NORMALIZATION_MAP).forEach(k => {
+        if (NORMALIZATION_MAP[k].toLowerCase() === lowerNorm) {
+            synonyms.add(k);
+        }
+    });
+
+    Object.values(CATEGORIES).flat().forEach(k => {
+        if (normalize(k).toLowerCase() === lowerNorm) {
+            synonyms.add(k.toLowerCase());
+        }
+    });
+
+    synonyms.add(lowerNorm);
+    return Array.from(synonyms);
 };
 
 export const extractKeywords = (text) => {
@@ -101,8 +162,6 @@ export const extractKeywords = (text) => {
     companyKeywords.forEach(ck => {
         const idx = cleanedText.indexOf(ck);
         if (idx !== -1) {
-            // If it's at the start, remove up to next major section or end
-            // If it's at the end, remove from there
             if (idx < cleanedText.length / 2) {
                 cleanedText = cleanedText.slice(idx + ck.length);
             } else {
@@ -112,16 +171,15 @@ export const extractKeywords = (text) => {
     });
 
     Object.values(CATEGORIES).flat().forEach(keyword => {
-        // Use word boundaries for matching to avoid partial matches (e.g., 'go' in 'google')
+        // Use word boundaries for matching to avoid partial matches
         const regex = new RegExp(`\\b${keyword.replace('.', '\\.')}\\b`, 'i');
         const match = text.match(regex);
         if (match && regex.test(cleanedText)) {
-            // Filter out if it's a stopword (though our dictionary shouldn't have them)
             if (!STOPWORDS.includes(keyword)) {
                 const norm = normalize(keyword);
                 foundNorms.add(norm);
                 if (!rawMap[norm]) {
-                    rawMap[norm] = match[0]; // Capture the exact case from the original text
+                    rawMap[norm] = match[0];
                 }
             }
         }
@@ -149,7 +207,6 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
 
     const jdNorms = jdKeywords.map(k => k.normalized);
 
-    // Group JD keywords by category to handle OR logic
     const jdByCategory = {};
     Object.entries(CATEGORIES).forEach(([cat, keywords]) => {
         const presentInJD = jdNorms.filter(k => {
@@ -159,11 +216,10 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
         if (presentInJD.length > 0) jdByCategory[cat] = presentInJD;
     });
 
-    // Helper to check if a keyword exists in text (with weighting)
     const checkMatch = (keyword, text) => {
         if (!text) return false;
         const normK = keyword.toLowerCase();
-        // Check for normalized version or raw version
+
         return text.toLowerCase().includes(normK) ||
             Object.keys(NORMALIZATION_MAP).some(key =>
                 NORMALIZATION_MAP[key].toLowerCase() === normK && text.toLowerCase().includes(key)
@@ -197,8 +253,6 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
         }
     });
 
-    // Language OR Rule refinement:
-    // If ANY requested language is found, satisfy the whole language group
     const languageKeywords = jdNorms.filter(k => {
         const normK = k.toLowerCase();
         return CATEGORIES.languages.some(lang => normalize(lang).toLowerCase() === normK);
@@ -212,8 +266,6 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
                 matches.add(k);
                 const missIdx = missing.indexOf(k);
                 if (missIdx !== -1) missing.splice(missIdx, 1);
-                // For the score calculation, we treat them as matched
-                // We'll add 1.0 weight (Skills equivalent) for these "implied" matches
                 weightedMatchCount += 1.0;
             }
         });
@@ -225,7 +277,7 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
         matches: Array.from(matches),
         missing,
         score,
-        weightedScore: Math.round((weightedMatchCount / (totalJdKeywordsCount * 2.0)) * 100), // Secondary metric
+        weightedScore: Math.round((weightedMatchCount / (totalJdKeywordsCount * 2.0)) * 100),
         jdRawMapping
     };
 };
