@@ -1,7 +1,7 @@
 const CATEGORIES = {
   languages: [
     "java","python","go","golang","ruby","javascript","typescript",
-    "kotlin","scala","rust","php","swift","dart","c++","c#", "bash", "shell", "powershell"
+    "kotlin","scala","rust","php","swift","dart", "bash", "shell", "powershell"
   ],
 
   frameworks: [
@@ -226,7 +226,7 @@ export const compareKeywords = (resume, jdKeywordsInput) => {
             );
     };
 
-    const skillsText = Object.values(resume.skills || {}).flat().join(' ');
+    const skillsText = (resume.skills || []).flatMap(cat => cat.items || []).join(' ');
     const experienceText = (resume.experience || []).map(e => `${e.title} ${e.company} ${e.description}`).join(' ');
     const projectsText = (resume.projects || []).map(p => `${p.title} ${p.description}`).join(' ');
 

@@ -59,6 +59,9 @@ Font.register({
     ]
 });
 
+// Disable hyphenation to ensure words are never broken across lines (Fixes ATS word issues)
+Font.registerHyphenationCallback(word => [word]);
+
 const getStyles = (settings) => {
     const fontSize = settings.fontSize || 10.5;
     const margin = settings.margin || 40;
@@ -236,7 +239,6 @@ const getStyles = (settings) => {
             fontSize: fontSize * 0.95,
             lineHeight: lineHeight,
             marginBottom: spacing * 0.5,
-            textAlign: 'justify',
         },
         bulletPoint: {
             width: 15,
@@ -244,6 +246,7 @@ const getStyles = (settings) => {
         },
         bulletText: {
             flex: 1,
+            textAlign: 'justify',
         },
         projectLinks: {
             flexDirection: 'column',
@@ -373,7 +376,8 @@ const ResumePDF = ({ resume }) => {
     );
 
     const renderSkills = () => {
-        if (!isVisible('skills') || !Object.values(resume.skills).some(s => s.length > 0)) return null;
+        const activeCategories = (resume.skills || []).filter(cat => cat.items && cat.items.length > 0);
+        if (!isVisible('skills') || activeCategories.length === 0) return null;
 
         let style = settings.skillsStyle || 'bullet';
         if (!['none', 'bullet', 'hyphen'].includes(style)) style = 'bullet';
@@ -384,39 +388,37 @@ const ResumePDF = ({ resume }) => {
                 <SectionHeader title="Core Skills" id="skills" />
 
                 {style === 'compact' ? (
-                    <Text style={{ fontSize: fontSize * 0.95, lineHeight: settings.lineHeight || 1.15, marginLeft: settings.indentBody ? 8 : 0 }}>
-                        {Object.entries(resume.skills).filter(([_, s]) => s.length > 0).map(([k, s]) => s.join(', ')).join(', ')}
+                    <Text style={{ fontSize: fontSize * 0.95, lineHeight: settings.lineHeight || 1.15, marginLeft: settings.indentBody ? 8 : 0, textAlign: 'justify' }}>
+                        {activeCategories.map(cat => cat.items.join(', ')).join(', ')}
                     </Text>
                 ) : style === 'newLine' ? (
                     <View style={{ marginLeft: settings.indentBody ? 8 : 0 }}>
-                        {Object.entries(resume.skills).filter(([_, s]) => s.length > 0).map(([key, skills]) => (
-                            <View key={key} style={{ flexDirection: 'row', marginBottom: 2 }}>
-                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{key === 'apiSecurity' ? 'APIs & Security' : key === 'devops' ? 'DevOps' : key === 'tools' ? 'Tools & Practices' : key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
-                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{skills.join(', ')}</Text>
+                        {activeCategories.map(cat => (
+                            <View key={cat.id} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{cat.name}:</Text>
+                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{cat.items.join(', ')}</Text>
                             </View>
                         ))}
                     </View>
                 ) : style === 'pipe' ? (
                     <View style={{ marginLeft: settings.indentBody ? 8 : 0 }}>
-                        {Object.entries(resume.skills).filter(([_, s]) => s.length > 0).map(([key, skills]) => (
-                            <View key={key} style={{ flexDirection: 'row', marginBottom: 2 }}>
-                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{key === 'apiSecurity' ? 'APIs & Security' : key === 'devops' ? 'DevOps' : key === 'tools' ? 'Tools & Practices' : key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
-                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{skills.join(' | ')}</Text>
+                        {activeCategories.map(cat => (
+                            <View key={cat.id} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{cat.name}:</Text>
+                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{cat.items.join(' | ')}</Text>
                             </View>
                         ))}
                     </View>
                 ) : style === 'bullet' || style === 'hyphen' || style === 'none' ? (
                     <View style={[styles.bulletList, { marginTop: 2, marginLeft: settings.indentBody ? 8 : 0 }]}>
-                        {Object.entries(resume.skills).filter(([_, s]) => s.length > 0).map(([key, skills]) => (
-                            <View key={key} style={styles.bulletItem}>
+                        {activeCategories.map(cat => (
+                            <View key={cat.id} style={styles.bulletItem}>
                                 {style !== 'none' && (
                                     <Text style={styles.bulletPoint}>{style === 'bullet' ? '•' : '–'}</Text>
                                 )}
                                 <Text style={styles.bulletText}>
-                                    <Text style={{ fontWeight: 'bold' }}>
-                                        {key === 'apiSecurity' ? 'APIs & Security' : key === 'devops' ? 'DevOps' : key === 'tools' ? 'Tools & Practices' : key.charAt(0).toUpperCase() + key.slice(1)}:
-                                    </Text>
-                                    {' ' + skills.join(', ')}
+                                    <Text style={{ fontWeight: 'bold' }}>{cat.name}:</Text>
+                                    {' ' + cat.items.join(', ')}
                                 </Text>
                             </View>
                         ))}
@@ -424,10 +426,10 @@ const ResumePDF = ({ resume }) => {
                 ) : (
                     // Default / Grid
                     <View style={{ marginLeft: settings.indentBody ? 8 : 0 }}>
-                        {Object.entries(resume.skills).filter(([_, s]) => s.length > 0).map(([key, skills]) => (
-                            <View key={key} style={{ flexDirection: 'row', marginBottom: 2 }}>
-                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{key === 'apiSecurity' ? 'APIs & Security' : key === 'devops' ? 'DevOps' : key === 'tools' ? 'Tools & Practices' : key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
-                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{skills.join(', ')}</Text>
+                        {activeCategories.map(cat => (
+                            <View key={cat.id} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                                <Text style={{ fontWeight: 'bold', width: 120, fontSize: fontSize * 0.95 }}>{cat.name}:</Text>
+                                <Text style={{ flex: 1, fontSize: fontSize * 0.95 }}>{cat.items.join(', ')}</Text>
                             </View>
                         ))}
                     </View>

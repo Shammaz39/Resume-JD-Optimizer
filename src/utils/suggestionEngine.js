@@ -145,7 +145,7 @@ export const generateSuggestions = (experience, projects, skills, summary, analy
     const allSuggestions = [];
     if (!analysis || analysis.score < 60 || analysis.missing.length === 0) return [];
 
-    const flatSkills = Object.values(skills).flat();
+    const flatSkills = (skills || []).flatMap(cat => cat.items || []);
 
     // Process Summary
     if (summary) {
@@ -250,7 +250,8 @@ export const generateSuggestions = (experience, projects, skills, summary, analy
     });
 
     // Skill Terminology Alignment (skillRename)
-    Object.entries(skills).forEach(([category, catSkills]) => {
+    (skills || []).forEach(cat => {
+        const catSkills = cat.items || [];
         catSkills.forEach((skill, index) => {
             const normSkill = normalize(skill);
             if (analysis.matches.includes(normSkill)) {
@@ -258,7 +259,7 @@ export const generateSuggestions = (experience, projects, skills, summary, analy
                 if (jdRaw && jdRaw !== skill) {
                     allSuggestions.push({
                         type: 'skillRename',
-                        itemId: category,
+                        itemId: cat.id,
                         lineIndex: index,
                         original: skill,
                         suggested: jdRaw

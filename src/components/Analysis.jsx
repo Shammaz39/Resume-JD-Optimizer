@@ -58,15 +58,16 @@ const Analysis = () => {
                 }
             });
         } else if (type === 'skillRename') {
-            const listKey = itemId; // category key like 'languages'
-            const currentSkills = [...(resume.skills[listKey] || [])];
-            currentSkills[lineIndex] = suggested;
-            updateResume({
-                skills: {
-                    ...resume.skills,
-                    [listKey]: currentSkills
+            const listKey = itemId; // category id
+            const updatedSkillsMap = resume.skills.map(cat => {
+                if (cat.id === listKey) {
+                    const newItems = [...(cat.items || [])];
+                    newItems[lineIndex] = suggested;
+                    return { ...cat, items: newItems };
                 }
+                return cat;
             });
+            updateResume({ skills: updatedSkillsMap });
         } else {
             const listKey = (type === 'experience' || type === 'experienceNewBullet') ? 'experience' : 'projects';
             const items = [...resume[listKey]];

@@ -24,15 +24,15 @@ const INITIAL_RESUME = {
         github: '',
         photo: null
     },
-    skills: {
-        languages: [],
-        backend: [],
-        apiSecurity: [],
-        databases: [],
-        devops: [],
-        tools: [],
-        frontend: []
-    },
+    skills: [
+        { id: 'languages', name: 'Programming Languages', items: [] },
+        { id: 'backend', name: 'Backend Development', items: [] },
+        { id: 'frontend', name: 'Frontend Development', items: [] },
+        { id: 'apiSecurity', name: 'APIs & Security', items: [] },
+        { id: 'databases', name: 'Databases', items: [] },
+        { id: 'devops', name: 'DevOps & Cloud', items: [] },
+        { id: 'tools', name: 'Tools & Version Control', items: [] }
+    ],
     experience: [],
     projects: [],
     education: [],
@@ -109,11 +109,33 @@ export const ResumeProvider = ({ children }) => {
                 description: item.description || (Array.isArray(item.bullets) ? item.bullets.join('\n') : '')
             }));
 
+            // Migration: convert skills object to array of objects
+            const migrateSkills = (skills) => {
+                if (Array.isArray(skills)) return skills;
+                
+                const skillMapping = {
+                    languages: 'Programming Languages',
+                    backend: 'Backend Development',
+                    frontend: 'Frontend Development',
+                    apiSecurity: 'APIs & Security',
+                    databases: 'Databases',
+                    devops: 'DevOps & Cloud',
+                    tools: 'Tools & Version Control'
+                };
+                
+                return Object.entries(skills || {}).map(([key, items]) => ({
+                    id: key,
+                    name: skillMapping[key] || (key.charAt(0).toUpperCase() + key.slice(1)),
+                    items: items || []
+                }));
+            };
+
             return {
                 ...INITIAL_RESUME,
                 ...parsed,
                 experience: migrateItems(parsed.experience),
                 projects: migrateItems(parsed.projects),
+                skills: migrateSkills(parsed.skills),
                 settings: { ...INITIAL_RESUME.settings, ...(parsed.settings || {}) }
             };
         }

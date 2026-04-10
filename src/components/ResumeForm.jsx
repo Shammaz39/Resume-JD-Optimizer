@@ -91,28 +91,49 @@ const ResumeForm = () => {
         }
     };
 
-    const addSkill = (category, skill) => {
+    const addSkill = (categoryId, skill) => {
         if (!skill.trim()) return;
-        const currentSkills = resume.skills[category] || [];
-        if (!currentSkills.includes(skill.trim())) {
-            updateResume({
-                skills: {
-                    ...resume.skills,
-                    [category]: [...currentSkills, skill.trim()]
+        const updatedSkills = resume.skills.map(cat => {
+            if (cat.id === categoryId) {
+                const currentItems = cat.items || [];
+                if (!currentItems.includes(skill.trim())) {
+                    return { ...cat, items: [...currentItems, skill.trim()] };
                 }
-            });
-        }
+            }
+            return cat;
+        });
+        updateResume({ skills: updatedSkills });
     };
 
-    const removeSkill = (category, index) => {
-        const currentSkills = resume.skills[category] || [];
-        const newSkills = [...currentSkills];
-        newSkills.splice(index, 1);
-        updateResume({
-            skills: {
-                ...resume.skills,
-                [category]: newSkills
+    const removeSkill = (categoryId, index) => {
+        const updatedSkills = resume.skills.map(cat => {
+            if (cat.id === categoryId) {
+                const newItems = [...(cat.items || [])];
+                newItems.splice(index, 1);
+                return { ...cat, items: newItems };
             }
+            return cat;
+        });
+        updateResume({ skills: updatedSkills });
+    };
+
+    const addSkillCategory = () => {
+        const newId = `cat_${Date.now()}`;
+        updateResume({
+            skills: [...resume.skills, { id: newId, name: 'New Category', items: [] }]
+        });
+    };
+
+    const updateSkillCategoryName = (categoryId, newName) => {
+        const updatedSkills = resume.skills.map(cat => 
+            cat.id === categoryId ? { ...cat, name: newName } : cat
+        );
+        updateResume({ skills: updatedSkills });
+    };
+
+    const removeSkillCategory = (categoryId) => {
+        updateResume({
+            skills: resume.skills.filter(cat => cat.id !== categoryId)
         });
     };
 
@@ -128,7 +149,7 @@ const ResumeForm = () => {
         </span>
     );
 
-    const SkillInput = ({ category, label, placeholder }) => {
+    const SkillInput = ({ categoryId, categoryName, placeholder }) => {
         const [inputValue, setInputValue] = useState('');
 
         const handleKeyDown = (e) => {
@@ -136,21 +157,31 @@ const ResumeForm = () => {
                 e.preventDefault();
                 const part = inputValue.replace(',', '').trim();
                 if (part) {
-                    addSkill(category, part);
+                    addSkill(categoryId, part);
                     setInputValue('');
                 }
             }
         };
 
+        const currentCat = resume.skills.find(c => c.id === categoryId) || { items: [] };
+
         return (
-            <div className="space-y-2">
-                <label className="text-indigo-400 font-bold flex justify-between items-center">
-                    <span>{label}</span>
-                    <span className="text-[10px] text-gray-500 font-normal">Press Enter or comma to add</span>
-                </label>
+            <div className="space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
+                <div className="flex justify-between items-center">
+                    <input 
+                        value={categoryName} 
+                        onChange={(e) => updateSkillCategoryName(categoryId, e.target.value)} 
+                        className="bg-transparent border-none text-indigo-400 font-bold focus:outline-none w-full"
+                        placeholder="Category Name"
+                    />
+                    <button onClick={() => removeSkillCategory(categoryId)} className="text-red-400 hover:text-red-300 transition-colors ml-2">
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+                <div className="text-[10px] text-gray-500 font-normal mb-1">Press Enter or comma to add</div>
                 <div className="flex flex-wrap gap-2 mb-2 min-h-[0px]">
-                    {(resume.skills[category] || []).map((skill, idx) => (
-                        <SkillBadge key={idx} name={skill} onRemove={() => removeSkill(category, idx)} />
+                    {(currentCat.items || []).map((skill, idx) => (
+                        <SkillBadge key={idx} name={skill} onRemove={() => removeSkill(categoryId, idx)} />
                     ))}
                 </div>
                 <input
@@ -160,11 +191,11 @@ const ResumeForm = () => {
                     onKeyDown={handleKeyDown}
                     onBlur={() => {
                         if (inputValue.trim()) {
-                            addSkill(category, inputValue.trim());
+                            addSkill(categoryId, inputValue.trim());
                             setInputValue('');
                         }
                     }}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+                    className="w-full bg-transparent border border-white/10 rounded-lg p-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
                 />
             </div>
         );
@@ -323,23 +354,18 @@ const ResumeForm = () => {
             )}
 
             {activeTab === 'skills' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 text-xs pb-4">
-                    {[
-                        { id: 'languages', label: 'Programming Languages', placeholder: 'Python, Javascript, Java...' },
-                        { id: 'backend', label: 'Backend Development', placeholder: 'Node.js, Express, Django...' },
-                        { id: 'frontend', label: 'Frontend Development', placeholder: 'React, Tailwind, Vue...' },
-                        { id: 'apiSecurity', label: 'APIs & Security', placeholder: 'REST, GraphQL, OAuth...' },
-                        { id: 'databases', label: 'Databases', placeholder: 'MongoDB, PostgreSQL, Redis...' },
-                        { id: 'devops', label: 'DevOps & Cloud', placeholder: 'Docker, AWS, CI/CD...' },
-                        { id: 'tools', label: 'Tools & Version Control', placeholder: 'Git, VS Code, Jira...' },
-                    ].map(cat => (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300 text-xs pb-4">
+                    {resume.skills.map(cat => (
                         <SkillInput
                             key={cat.id}
-                            category={cat.id}
-                            label={cat.label}
-                            placeholder={cat.placeholder}
+                            categoryId={cat.id}
+                            categoryName={cat.name}
+                            placeholder="Add a skill..."
                         />
                     ))}
+                    <button onClick={addSkillCategory} className="w-full py-2 border-2 border-dashed border-white/10 rounded-xl text-gray-400 text-xs hover:border-indigo-500 hover:text-white transition-colors flex items-center justify-center">
+                        <Plus className="mr-2" size={14} /> Add Skill Category
+                    </button>
                 </div>
             )}
 
