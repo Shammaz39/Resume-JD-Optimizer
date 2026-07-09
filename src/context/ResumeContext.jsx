@@ -161,8 +161,24 @@ export const ResumeProvider = ({ children }) => {
         }
     }, [baseResumeSnapshot]);
 
-    const updateResume = (newData) => {
-        setResume(prev => ({ ...prev, ...newData }));
+    const updateResume = (newDataOrFn) => {
+        if (typeof newDataOrFn === 'function') {
+            setResume(prev => {
+                const nextState = newDataOrFn(prev);
+                if (nextState.skills && nextState.skills.length > 7) {
+                    console.error('SKILLS DUPLICATED!', prev.skills, nextState.skills);
+                }
+                return nextState;
+            });
+        } else {
+            setResume(prev => {
+                const nextState = { ...prev, ...newDataOrFn };
+                if (nextState.skills && nextState.skills.length > 7) {
+                    console.error('SKILLS DUPLICATED (obj)!', prev.skills, nextState.skills);
+                }
+                return nextState;
+            });
+        }
     };
 
     const updateSettings = (newSettings) => {

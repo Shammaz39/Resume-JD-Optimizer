@@ -259,6 +259,12 @@ const getStyles = (settings) => {
     });
 };
 
+const ensureHttps = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `https://${url}`;
+};
+
 const ResumePDF = ({ resume }) => {
     const isVisible = (section) => resume.settings.visibleSections[section] !== false;
     const settings = resume.settings;
@@ -349,18 +355,18 @@ const ResumePDF = ({ resume }) => {
                 {(resume.personalInfo.linkedin || resume.personalInfo.github || resume.personalInfo.portfolio) && (
                     <View style={styles.links}>
                         {resume.personalInfo.portfolio && (
-                            <Link src={resume.personalInfo.portfolio} style={styles.link}>
-                                Portfolio: {resume.personalInfo.portfolio.replace(/^https?:\/\/(www\.)?/, '')}
+                            <Link src={ensureHttps(resume.personalInfo.portfolio)} style={styles.link}>
+                                Portfolio: {resume.personalInfo.portfolio}
                             </Link>
                         )}
                         {resume.personalInfo.linkedin && (
-                            <Link src={resume.personalInfo.linkedin} style={styles.link}>
-                                LinkedIn: {resume.personalInfo.linkedin.replace(/^https?:\/\/(www\.)?/, '')}
+                            <Link src={ensureHttps(resume.personalInfo.linkedin)} style={styles.link}>
+                                LinkedIn: {resume.personalInfo.linkedin}
                             </Link>
                         )}
                         {resume.personalInfo.github && (
-                            <Link src={resume.personalInfo.github} style={styles.link}>
-                                GitHub: {resume.personalInfo.github.replace(/^https?:\/\/(www\.)?/, '')}
+                            <Link src={ensureHttps(resume.personalInfo.github)} style={styles.link}>
+                                GitHub: {resume.personalInfo.github}
                             </Link>
                         )}
                     </View>
@@ -479,9 +485,9 @@ const ResumePDF = ({ resume }) => {
                             <Text style={styles.itemTitle}>{proj.name}</Text>
                         </View>
                         <View style={styles.projectLinks}>
-                            {proj.github && <Link src={proj.github} style={styles.link}>GitHub: {proj.github.replace(/^https?:\/\/(www\.)?/, '')}</Link>}
-                            {proj.frontend && <Link src={proj.frontend} style={styles.link}>Frontend: {proj.frontend.replace(/^https?:\/\/(www\.)?/, '')}</Link>}
-                            {proj.backend && <Link src={proj.backend} style={styles.link}>Backend: {proj.backend.replace(/^https?:\/\/(www\.)?/, '')}</Link>}
+                            {proj.github && <Link src={ensureHttps(proj.github)} style={styles.link}>GitHub: {proj.github}</Link>}
+                            {proj.frontend && <Link src={ensureHttps(proj.frontend)} style={styles.link}>Frontend: {proj.frontend}</Link>}
+                            {proj.backend && <Link src={ensureHttps(proj.backend)} style={styles.link}>Backend: {proj.backend}</Link>}
                         </View>
                         {renderDescription(proj.description)}
                     </View>

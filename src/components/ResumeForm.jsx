@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useResume } from '../context/ResumeContext';
-import { Plus, Trash2, Save, User, Settings as SettingsIcon, Eye, EyeOff, Check, ChevronDown, ChevronRight, Bold, Italic, Underline } from 'lucide-react';
+import { Plus, Trash2, Save, User, Settings as SettingsIcon, Eye, EyeOff, Check, ChevronDown, ChevronRight, Bold, Italic, Underline, ChevronUp, AlertTriangle, X } from 'lucide-react';
 
 const RichTextArea = ({ value, onChange, placeholder }) => {
     const textareaRef = useRef(null);
@@ -42,10 +42,152 @@ const RichTextArea = ({ value, onChange, placeholder }) => {
     );
 };
 
+// ─── Skill sub-components live OUTSIDE ResumeForm so React never
+// sees a new component type on re-render (which would cause remounting/duplicates).
+
+const SkillBadge = ({ name, onRemove }) => (
+    <span className="flex items-center space-x-1.5 bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md border border-indigo-500/30 group animate-in zoom-in duration-200">
+        <span className="font-medium">{name}</span>
+        <button onClick={onRemove} className="hover:text-red-400 text-indigo-500/50 transition-colors">
+            <Trash2 size={12} />
+        </button>
+    </span>
+);
+
+const SkillCategoryCard = ({ categoryId, isFirst, isLast }) => {
+    const { resume, updateResume } = useResume();
+    const [inputValue, setInputValue] = useState('');
+
+    const cat = resume.skills.find(c => c.id === categoryId);
+    if (!cat) return null;
+
+    const addSkill = (skill) => {
+        const trimmed = skill.trim();
+        if (!trimmed) return;
+        updateResume(prev => ({
+            ...prev,
+            skills: prev.skills.map(c =>
+                c.id === categoryId && !(c.items || []).includes(trimmed)
+                    ? { ...c, items: [...(c.items || []), trimmed] }
+                    : c
+            )
+        }));
+    };
+
+    const removeSkill = (index) => {
+        updateResume(prev => ({
+            ...prev,
+            skills: prev.skills.map(c => {
+                if (c.id !== categoryId) return c;
+                const newItems = [...(c.items || [])];
+                newItems.splice(index, 1);
+                return { ...c, items: newItems };
+            })
+        }));
+    };
+
+    const updateName = (newName) => {
+        updateResume(prev => ({
+            ...prev,
+            skills: prev.skills.map(c => c.id === categoryId ? { ...c, name: newName } : c)
+        }));
+    };
+
+    const removeCategory = () => {
+        updateResume(prev => ({ ...prev, skills: prev.skills.filter(c => c.id !== categoryId) }));
+    };
+
+    const moveCategory = (direction) => {
+        updateResume(prev => {
+            const skills = [...prev.skills];
+            const index = skills.findIndex(c => c.id === categoryId);
+            if (direction === 'up' && index > 0) {
+                const temp = skills[index - 1];
+                skills[index - 1] = skills[index];
+                skills[index] = temp;
+            } else if (direction === 'down' && index < skills.length - 1) {
+                const temp = skills[index + 1];
+                skills[index + 1] = skills[index];
+                skills[index] = temp;
+            }
+            return { ...prev, skills };
+        });
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const part = inputValue.replace(',', '').trim();
+            if (part) { addSkill(part); setInputValue(''); }
+        }
+    };
+
+    return (
+        <div className="space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
+            <div className="flex justify-between items-center">
+                <input
+                    value={cat.name}
+                    onChange={(e) => updateName(e.target.value)}
+                    className="bg-transparent border-none text-indigo-400 font-bold focus:outline-none w-full"
+                    placeholder="Category Name"
+                />
+                <div className="flex items-center gap-1 ml-2 shrink-0">
+                    <button
+                        onClick={() => moveCategory('up')}
+                        disabled={isFirst}
+                        className="text-gray-500 hover:text-indigo-300 transition-colors disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+                        title="Move up"
+                    >
+                        <ChevronUp size={15} />
+                    </button>
+                    <button
+                        onClick={() => moveCategory('down')}
+                        disabled={isLast}
+                        className="text-gray-500 hover:text-indigo-300 transition-colors disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+                        title="Move down"
+                    >
+                        <ChevronDown size={15} />
+                    </button>
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    <button onClick={removeCategory} className="text-red-400 hover:text-red-300 transition-colors">
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            </div>
+            <div className="text-[10px] text-gray-500 font-normal mb-1">Press Enter or comma to add</div>
+            <div className="flex flex-wrap gap-2 mb-2 min-h-[0px]">
+                {(cat.items || []).map((skill, idx) => (
+                    <SkillBadge key={idx} name={skill} onRemove={() => removeSkill(idx)} />
+                ))}
+            </div>
+            <input
+                placeholder="Add a skill..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={() => {
+                    if (inputValue.trim()) { addSkill(inputValue.trim()); setInputValue(''); }
+                }}
+                className="w-full bg-transparent border border-white/10 rounded-lg p-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
+            />
+        </div>
+    );
+};
+
 const ResumeForm = () => {
     const { resume, updateResume, saveBaseSnapshot, updateSettings, isBaseSet } = useResume();
     const [activeTab, setActiveTab] = useState('personal');
     const [openSettingSection, setOpenSettingSection] = useState('layout');
+    const [showBaseConfirm, setShowBaseConfirm] = useState(false);
+
+    const handleSetBaseClick = () => {
+        setShowBaseConfirm(true);
+    };
+
+    const confirmSetBase = () => {
+        saveBaseSnapshot();
+        setShowBaseConfirm(false);
+    };
 
     const CollapsibleSection = ({ id, title, children }) => (
         <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden mb-3 shadow-sm">
@@ -91,32 +233,6 @@ const ResumeForm = () => {
         }
     };
 
-    const addSkill = (categoryId, skill) => {
-        if (!skill.trim()) return;
-        const updatedSkills = resume.skills.map(cat => {
-            if (cat.id === categoryId) {
-                const currentItems = cat.items || [];
-                if (!currentItems.includes(skill.trim())) {
-                    return { ...cat, items: [...currentItems, skill.trim()] };
-                }
-            }
-            return cat;
-        });
-        updateResume({ skills: updatedSkills });
-    };
-
-    const removeSkill = (categoryId, index) => {
-        const updatedSkills = resume.skills.map(cat => {
-            if (cat.id === categoryId) {
-                const newItems = [...(cat.items || [])];
-                newItems.splice(index, 1);
-                return { ...cat, items: newItems };
-            }
-            return cat;
-        });
-        updateResume({ skills: updatedSkills });
-    };
-
     const addSkillCategory = () => {
         const newId = `cat_${Date.now()}`;
         updateResume({
@@ -124,82 +240,8 @@ const ResumeForm = () => {
         });
     };
 
-    const updateSkillCategoryName = (categoryId, newName) => {
-        const updatedSkills = resume.skills.map(cat => 
-            cat.id === categoryId ? { ...cat, name: newName } : cat
-        );
-        updateResume({ skills: updatedSkills });
-    };
-
-    const removeSkillCategory = (categoryId) => {
-        updateResume({
-            skills: resume.skills.filter(cat => cat.id !== categoryId)
-        });
-    };
-
-    const SkillBadge = ({ name, onRemove }) => (
-        <span className="flex items-center space-x-1.5 bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md border border-indigo-500/30 group animate-in zoom-in duration-200">
-            <span className="font-medium">{name}</span>
-            <button
-                onClick={onRemove}
-                className="hover:text-red-400 text-indigo-500/50 transition-colors"
-            >
-                <Trash2 size={12} />
-            </button>
-        </span>
-    );
-
-    const SkillInput = ({ categoryId, categoryName, placeholder }) => {
-        const [inputValue, setInputValue] = useState('');
-
-        const handleKeyDown = (e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault();
-                const part = inputValue.replace(',', '').trim();
-                if (part) {
-                    addSkill(categoryId, part);
-                    setInputValue('');
-                }
-            }
-        };
-
-        const currentCat = resume.skills.find(c => c.id === categoryId) || { items: [] };
-
-        return (
-            <div className="space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
-                <div className="flex justify-between items-center">
-                    <input 
-                        value={categoryName} 
-                        onChange={(e) => updateSkillCategoryName(categoryId, e.target.value)} 
-                        className="bg-transparent border-none text-indigo-400 font-bold focus:outline-none w-full"
-                        placeholder="Category Name"
-                    />
-                    <button onClick={() => removeSkillCategory(categoryId)} className="text-red-400 hover:text-red-300 transition-colors ml-2">
-                        <Trash2 size={16} />
-                    </button>
-                </div>
-                <div className="text-[10px] text-gray-500 font-normal mb-1">Press Enter or comma to add</div>
-                <div className="flex flex-wrap gap-2 mb-2 min-h-[0px]">
-                    {(currentCat.items || []).map((skill, idx) => (
-                        <SkillBadge key={idx} name={skill} onRemove={() => removeSkill(categoryId, idx)} />
-                    ))}
-                </div>
-                <input
-                    placeholder={placeholder}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onBlur={() => {
-                        if (inputValue.trim()) {
-                            addSkill(categoryId, inputValue.trim());
-                            setInputValue('');
-                        }
-                    }}
-                    className="w-full bg-transparent border border-white/10 rounded-lg p-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                />
-            </div>
-        );
-    };
+    // NOTE: addSkill / removeSkill / moveSkillCategory etc. live inside
+    // SkillCategoryCard (top-level component) to avoid remounting on re-render.
 
     const addArrayItem = (key, initialValue) => {
         const currentItems = resume[key] || [];
@@ -236,6 +278,53 @@ const ResumeForm = () => {
     ];
 
     return (
+        <>
+        {/* Base Resume Confirmation Modal */}
+        {showBaseConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                {/* Backdrop */}
+                <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowBaseConfirm(false)}
+                />
+                {/* Dialog */}
+                <div className="relative bg-[#1e293b] border border-white/20 rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-in zoom-in-95 duration-200">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-amber-500/20 rounded-xl shrink-0">
+                            <AlertTriangle size={22} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-white font-bold text-base mb-1">Set as Base Resume?</h3>
+                            <p className="text-gray-400 text-xs leading-relaxed">
+                                This will overwrite the current base snapshot. The optimizer uses this as the "original" version to measure changes against.
+                                {isBaseSet && <span className="block mt-1 text-amber-400">⚠ A base is already set — it will be replaced.</span>}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setShowBaseConfirm(false)}
+                            className="text-gray-500 hover:text-white transition-colors shrink-0"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div className="flex gap-3 mt-5">
+                        <button
+                            onClick={() => setShowBaseConfirm(false)}
+                            className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-xs font-medium hover:bg-white/5 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={confirmSetBase}
+                            className="flex-1 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <Save size={13} />
+                            Confirm & Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/20">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                 <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide max-w-[70%]">
@@ -252,7 +341,7 @@ const ResumeForm = () => {
                     ))}
                 </div>
                 <button
-                    onClick={saveBaseSnapshot}
+                    onClick={handleSetBaseClick}
                     className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md ml-4 shrink-0 ${isBaseSet ? 'bg-green-500 scale-105' : 'bg-green-600 hover:bg-green-500'
                         } text-white`}
                     title="Save as Base Resume"
@@ -355,12 +444,12 @@ const ResumeForm = () => {
 
             {activeTab === 'skills' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300 text-xs pb-4">
-                    {resume.skills.map(cat => (
-                        <SkillInput
+                    {resume.skills.map((cat, idx) => (
+                        <SkillCategoryCard
                             key={cat.id}
                             categoryId={cat.id}
-                            categoryName={cat.name}
-                            placeholder="Add a skill..."
+                            isFirst={idx === 0}
+                            isLast={idx === resume.skills.length - 1}
                         />
                     ))}
                     <button onClick={addSkillCategory} className="w-full py-2 border-2 border-dashed border-white/10 rounded-xl text-gray-400 text-xs hover:border-indigo-500 hover:text-white transition-colors flex items-center justify-center">
@@ -828,6 +917,7 @@ const ResumeForm = () => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 
